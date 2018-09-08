@@ -4,7 +4,8 @@
 *
 *  Use A/D to change the automata rule
 *  You can turn on/off randomization options with W(top)/S(sides)
-*  Q/space to refresh with the current settings
+*  E/space to refresh the grid using the current randomization setting
+*  Q add another step
 *
 *  ------------------------------------------------------------
 *  ~ How it works:
@@ -13,10 +14,13 @@
 *  more information: http://mathworld.wolfram.com/ElementaryCellularAutomaton.html
 */
 
+// amount of steps horizontally
 int stepsX = 200;
-int stepsY = 100;
+// amount of steps vertically
+int stepsY = 100;         
 boolean randomizeTop = true;
 boolean randomizeSides = true;
+boolean animate = true;
 
 int rule = 120;
 // some fun rule options: 18, 30, 45, 57, 90, 105, 120, 135, 150, 167 ..
@@ -28,7 +32,7 @@ void setup() {
   grid = new boolean[stepsX][stepsY];
   previous = new boolean[3];
   size(600, 300);
-  frameRate(30);
+  frameRate(60);
 
   for (int x = 0; x < grid.length; x++) {
     if (randomizeTop) {
@@ -41,27 +45,7 @@ void setup() {
   }
 
   for (int y = 1; y < grid[0].length; y++) {
-    for (int x = 0; x < grid.length; x++) {
-
-      // accomodate for the boundaries with if statements
-      if (x != 0) {
-        previous[0] = grid[x-1][y-1];
-      } else if (!randomizeSides){
-        previous[0] = false;
-      } else {
-        previous[0] = randomBool();
-      }  // LEFT
-      previous[1] = grid[x][y-1]; // CENTER
-      if (x != grid.length - 1) {
-        previous[2] = grid[x+1][y-1];
-      } else if (!randomizeSides){
-        previous[2] = false;
-      } else {
-        previous[2] = randomBool();
-      }  // RIGHT
-
-      grid[x][y] = calcRule(previous[0], previous[1], previous[2]);
-    }
+    calcGeneration(y);
   }
 }
 
@@ -97,31 +81,75 @@ void draw() {
     fill (255, 0, 0);
   }
   text("S", 48, 2);
+  
+  if (animate){
+    nextStep();
+  }
 }
+
+// -------------------- OTHER METHODS --------------------
 
 boolean randomBool() {
   return random(1) > .5;
 }
 
 void keyPressed(){
-  if (key == 's'){
+  if (key == 's'){        // toggle randomization of the outer columns (walls)
     randomizeSides = !randomizeSides;
     setup();
-  } else if (key == 'w'){
+  } else if (key == 'w'){ // toggle randomization of the top row (roof)
     randomizeTop = !randomizeTop;
     setup();
-  } else if (key == 'a'){
+  } else if (key == 'a'){ //  decrease rule count
     rule--;
     setup();
-  } else if (key == 'd'){
+  } else if (key == 'd'){ // increase rule count
     rule++;
     setup();
-  } else if (key == ' ' || key == 'q'){
-    setup();
+  } else if (key == ' '){ // toggle animation
+    animate = !animate;
+  } else if (key == 'q'){ // next step
+    nextStep();
+  } else if (key == 'e'){ // reset
+    setup();     
   }
 }
 
-// Here's a function to setup own cellular automata rule
+void nextStep(){
+  for (int y = 0; y < grid[0].length - 1; y++){
+    for (int x = 0; x < grid.length; x++) {
+      grid[x][y] = grid[x][y + 1];
+    }
+  }
+  calcGeneration(grid[0].length - 1);
+}
+
+
+void calcGeneration(int y){
+  for (int x = 0; x < grid.length; x++) {
+
+    // accomodate for the boundaries with if statements
+    if (x != 0) {
+      previous[0] = grid[x-1][y-1];
+    } else if (!randomizeSides){
+      previous[0] = false;
+    } else {
+      previous[0] = randomBool();
+    }                                // LEFT
+    previous[1] = grid[x][y-1];      // CENTER
+    if (x != grid.length - 1) {
+      previous[2] = grid[x+1][y-1];
+    } else if (!randomizeSides){
+      previous[2] = false;
+    } else {
+      previous[2] = randomBool();
+    }                                // RIGHT
+
+    grid[x][y] = calcRule(previous[0], previous[1], previous[2]);
+  }
+}
+
+// Method to setup the cellular automata rule using the 8 possible cases
 boolean calcRule(boolean l, boolean c, boolean r){
   if (rule < 0 ){
 
