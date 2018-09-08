@@ -22,8 +22,9 @@ boolean randomizeTop = true;
 boolean randomizeSides = true;
 boolean animate = true;
 
-int rule = 120;
-// some fun rule options: 18, 30, 45, 57, 90, 105, 120, 135, 150, 167 ..
+int rule = 120; // = int(random(255));
+// rule should be in range of [0, 255] (rule < 2^8)
+// some fun ones: 18, 30, 45, 57, 90, 105, 120, 135, 150, 167, 195 ..
 
 boolean[][] grid;
 boolean[] previous;
@@ -31,6 +32,7 @@ boolean[] previous;
 void setup() {
   grid = new boolean[stepsX][stepsY];
   previous = new boolean[3];
+  //fullScreen();
   size(600, 300);
   frameRate(60);
 
@@ -59,7 +61,7 @@ void draw() {
       } else {
         fill(255);
       }
-      rect(x * width/grid.length, y * height/grid[0].length, width/grid.length, height/grid[0].length);
+      rect(x * width/grid.length, y * height/grid[0].length, ceil((float)width/grid.length), ceil((float)height/grid[0].length));
     }
   }
 
@@ -92,6 +94,9 @@ void draw() {
 boolean randomBool() {
   return random(1) > .5;
 }
+void mousePressed(){
+  animate = !animate;
+}
 
 void keyPressed(){
   if (key == 's'){        // toggle randomization of the outer columns (walls)
@@ -109,6 +114,7 @@ void keyPressed(){
   } else if (key == ' '){ // toggle animation
     animate = !animate;
   } else if (key == 'q'){ // next step
+    animate = false;
     nextStep();
   } else if (key == 'e'){ // reset
     setup();     
