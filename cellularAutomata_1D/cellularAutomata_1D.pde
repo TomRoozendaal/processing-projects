@@ -15,12 +15,16 @@
 */
 
 // amount of steps horizontally
-int stepsX = 200;
+int stepsX = 301;
 // amount of steps vertically
-int stepsY = 100;         
+int stepsY = 200;         
 boolean randomizeTop = true;
 boolean randomizeSides = true;
 boolean animate = true;
+boolean GUI = true;
+
+color c1 = color(25); // ON cell color
+color c2 = color(220); // OFF cell color
 
 int rule = 120; // = int(random(255));
 // rule should be in range of [0, 255] (rule < 2^8)
@@ -33,7 +37,7 @@ void setup() {
   grid = new boolean[stepsX][stepsY];
   previous = new boolean[3];
   //fullScreen();
-  size(600, 300);
+  size(602, 400);
   frameRate(60);
 
   for (int x = 0; x < grid.length; x++) {
@@ -57,16 +61,26 @@ void draw() {
   for (int y = 0; y < grid[0].length; y++) {
     for (int x = 0; x < grid.length; x++) {
       if (grid[x][y]) {
-        fill(0);
+        fill(c1);
       } else {
-        fill(255);
+        fill(c2);
       }
       rect(x * width/grid.length, y * height/grid[0].length, ceil((float)width/grid.length), ceil((float)height/grid[0].length));
     }
   }
+  
+  if(GUI){
+    drawGUI();
+  }
+  if (animate){
+    nextStep();
+  }
+}
 
+void drawGUI(){
   fill(255);
-  rect(0, 0, 64, 19);
+  stroke(150);
+  rect(-1, -1, 65, 20, 0, 0, 8, 0);
 
   fill(255, 0, 0);
   textAlign(LEFT, TOP);
@@ -83,10 +97,6 @@ void draw() {
     fill (255, 0, 0);
   }
   text("S", 48, 2);
-  
-  if (animate){
-    nextStep();
-  }
 }
 
 // -------------------- OTHER METHODS --------------------
@@ -118,6 +128,8 @@ void keyPressed(){
     nextStep();
   } else if (key == 'e'){ // reset
     setup();     
+  } else if (key == 'g'){ // reset
+    GUI = !GUI;     
   }
 }
 
