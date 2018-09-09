@@ -132,11 +132,9 @@ void keyPressed(){
     setup();
   } else if (key == 'a' || key == 'A'){ //  decrease rule count
     rule--;
-    animate = false;
     setup();
   } else if (key == 'd' || key == 'D'){ // increase rule count
     rule++;
-    animate = false;
     setup();
   } else if (key == ' '){ // toggle animation
     animate = !animate;
@@ -156,8 +154,9 @@ void keyPressed(){
 void saveFrame() {
   String imgStr = String.format("%03d", imgCount);
   PImage partialSave = get(0,0,width,height-20);
-  partialSave.save("/frames/"+(imgStr + "_rule" + ruleStr+".png"));
-  println(imgStr + "_rule" + ruleStr+".png saved");
+  String file = (imgStr + "_rule" + ruleStr+" .png");
+  partialSave.save("/frames/"+ file);
+  println(file + "saved");
   imgCount++;
 }
 
