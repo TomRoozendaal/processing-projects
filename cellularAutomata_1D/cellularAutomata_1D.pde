@@ -18,6 +18,10 @@
 *  SPACE to toggle the animation
 */
 
+import java.util.Date;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+
 // amount of steps horizontally
 int stepsX = 80;
 // amount of steps vertically
@@ -32,6 +36,7 @@ boolean gridStroke = true;
 color c3 = lerpColor(c1, c2, 0.5); 
 color c4 = (c3 & 0xffffff) | (150 << 24); // Stroke color
 int imgCount = 1;
+boolean recording = false;
 
 int rule = int(random(255)); // = int(random(255));
 String ruleStr;
@@ -89,14 +94,19 @@ void draw() {
   if (animate){
     nextStep();
   }
+  if (recording){
+    safeForAnimation();
+    animate = true;
+  }
 }
 
 void drawGUI(){
   fill(255);
-  stroke(150);
+  stroke(200);
   rect(0, height - 20, width, 20, 0, 0, 0, 0);
-
+  
   fill(255, 0, 0);
+  noStroke();
   textAlign(LEFT, CENTER);
   text(ruleStr, 8, height - 11);
   
@@ -108,14 +118,20 @@ void drawGUI(){
     fill (0, 180, 0);
     text("Random ON", 40, height - 11);
   }
-  
+  textAlign(RIGHT, CENTER);
+  if (!recording){
+    fill (150);
+    ellipse(width - 12, height - 9, 8, 8);
+    text("Recording", width-20, height - 11);
+  } else {
+    fill (255, 0, 0);
+    ellipse(width - 12, height - 9, 8, 8);
+    text("Recording", width-20, height - 11);
+  }
 }
 
-// -------------------- OTHER METHODS --------------------
+// -------------------- EVENT METHODS --------------------
 
-boolean randomBool() {
-  return random(1) > .5;
-}
 void mouseClicked(){
   if (mouseY > height-20){
      randomize = !randomize;
@@ -126,38 +142,74 @@ void mouseClicked(){
 }
 
 void keyPressed(){
-  if (key == 'w' || key == 'W'){        // toggle randomization of the outer columns (walls)
-    randomize = !randomize;
-    animate = false;
-    setup();
+  if (!recording) {
+    if (key == 'w' || key == 'W'){        // toggle randomization of the outer columns (walls)
+      randomize = !randomize;
+      animate = false;
+      setup();
+    } else if (key == ' '){               // toggle animation
+      animate = !animate;
+    } else if (key == 'q' || key == 'Q'){ // next step
+      animate = false;
+      nextStep();
+    } else if (key == 'r' || key == 'R'){ // reset
+      animate = false;
+      setup();
+    } else if (key == 's' || key == 'S'){ // save current frame
+      saveFrame(); 
+    } else if (key == 'g' || key == 'G'){ // toggle grid
+      gridStroke = !gridStroke; 
+    } 
+  }
+  
+  if (key == 'f' || key == 'F'){ // start/stop recording
+    recording = !recording;
+    if (!recording){
+      animate = false; 
+    }
   } else if (key == 'a' || key == 'A'){ //  decrease rule count
     rule--;
     setup();
   } else if (key == 'd' || key == 'D'){ // increase rule count
     rule++;
     setup();
-  } else if (key == ' '){ // toggle animation
-    animate = !animate;
-  } else if (key == 'q' || key == 'Q'){ // next step
-    animate = false;
-    nextStep();
-  } else if (key == 'r' || key == 'R'){ // reset
-    animate = false;
-    setup();
-  } else if (key == 's' || key == 'S'){
-    saveFrame(); 
-  } else if (key == 'g' || key == 'G'){
-    gridStroke = !gridStroke; 
-  }
+  } 
 }
 
 void saveFrame() {
-  String imgStr = String.format("%03d", imgCount);
+  SimpleDateFormat sdfDate = new SimpleDateFormat("dd_MM_YYYY-HH_mm_ss"); //"yyyy-MM-dd HH:mm:ss.SSS"
+  Date now = new Date();
+  String strDate = sdfDate.format(now);
+  
   PImage partialSave = get(0,0,width,height-20);
-  String file = (imgStr + "_rule" + ruleStr+" .png");
+  String file;
+  if (randomize){
+     file = ("R_Rule" + ruleStr+ "-" + strDate + ".png");
+  } else {
+     file = ("Rule" + ruleStr+ "-" + strDate + ".png");
+  }
+  
   partialSave.save("/frames/"+ file);
-  println(file + "saved");
+  println(file + " saved");
+}
+
+void safeForAnimation(){
+  PImage partialSave = get(0,0,width,height-20);
+  String file;
+  String imgStr = String.format("%03d", imgCount);
+  if (randomize){
+     file = ("R-" + imgStr + ".png");
+  } else {
+     file = (imgStr + ".png");
+  }
+  partialSave.save("/frames/" + ruleStr + "/"+ file);
   imgCount++;
+}
+
+// -------------------- OTHER METHODS --------------------
+
+boolean randomBool() {
+  return random(1) > .5;
 }
 
 void nextStep(){
@@ -168,7 +220,6 @@ void nextStep(){
   }
   calcGeneration(grid[0].length - 1);
 }
-
 
 void calcGeneration(int y){
   for (int x = 0; x < grid.length; x++) {
