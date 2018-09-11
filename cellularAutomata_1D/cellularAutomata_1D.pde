@@ -128,6 +128,13 @@ void drawGUI(){
     ellipse(width - 12, height - 9, 8, 8);
     text("Recording", width-20, height - 11);
   }
+  if (!animate){
+    fill (150);
+    ellipse(width/2, height - 9, 8, 8);
+  } else {
+    fill (0, 200, 0);
+    ellipse(width/2, height - 9, 8, 8);
+  }
 }
 
 // -------------------- EVENT METHODS --------------------
