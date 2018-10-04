@@ -23,9 +23,9 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
 // amount of steps horizontally
-int stepsX = 80;
+int stepsX = 400;
 // amount of steps vertically
-int stepsY = 40;
+int stepsY = stepsX/2;
 boolean randomize = true;
 boolean animate = false;
 boolean GUI = true;
@@ -50,7 +50,7 @@ void setup() {
   grid = new boolean[stepsX * 2][stepsY];
   previous = new boolean[3];
   //fullScreen();
-  size(800, 420); // height is with extra spacing for the GUI
+  size(400, 220); // height is with extra spacing for the GUI
   frameRate(30);
 
   for (int x = 0; x < grid.length; x++) {
