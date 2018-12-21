@@ -19,9 +19,9 @@ int solCount;
 // starting position
 int[] pos = {0,0};
 // nrof rows
-int rows = 5;
+int rows = 6;
 // nrof columns
-int cols = 5;
+int cols = 6;
 // print all the solutions, time consuming if enabled!
 // nrof solutions 5x5: 552
 // nrof solutions 6x6: 302282
