@@ -7,72 +7,36 @@ int quantizationFactor = 8;
 int mode = 3;
 int w, h;
 
-// animation control
-boolean loop = true;
+// animation variables
 int p = 1;
-boolean b = true;
 
 void setup() {
-  size(1024, 1024);
+  size(1536, 1024);
   w = width;
   h = height;
-  img = loadImage(fileName);
-  //noLoop();
+  noLoop();
   frameRate(4);
 }
 
 void draw() {
-  if ( p < 12 && b) {
-    p++;
-  } else if (p == 12) {
-    b = false; 
-    p--;
-  } else if (p > 3 && !b) {
-    p--;
-  } else if (p == 3) {
-    b = true; 
-    p++;
-  } 
-  translate(w/2, w/2);
   // image 1
   img = loadImage(fileName);
-  image(img, -w/2, -h/2);
+  image(img, 0, 0);
 
   // image 2
-  img.loadPixels();
-  PImage pixelated = pixelateImage(img, p);
-  ditherImage(pixelated, 8, 1);
-  pixelated = resizeImage(pixelated, w/2, h/2);
-  img.updatePixels();
-  image(pixelated, 0, -h/2);
-
-  // image 3
-  img = loadImage(fileName);
-  img.loadPixels();
-  img = pixelateImage(img, 4);
-  ditherImage(img, 2, 0);
-  img = resizeImage(img, w/2, h/2);
-  //pixelateImage(pixelFactor);
-  img.updatePixels();
-  image(img, -w/2, 0);
-
-  // image 4
-  img = loadImage(fileName);
-  img.loadPixels();
-  img = pixelateImage(img, 4);
-  ditherImage(img, 6, 0);
-  img = resizeImage(img, w/2, h/2);
-  img.updatePixels();
-  image(img, 0, 0);
+  if (p%3 == 1) {
+    dotImageColors(img, 512, 0, 8, 2);
+  } else if (p%3 == 2) {
+    dotImageGray(img, 512, 0, 8, 2);
+  } else {
+    dotImageColored(img, 512, 0, 8, 2);
+  }
+  //image(pixelated, w/2, 0);
 }
 // ----------------------------------
 void mouseClicked() {
-  loop = !loop;
-  if (!loop ) { 
-    noLoop();
-  } else { 
-    loop();
-  };
+  p++;
+  redraw();
 }
 // -------------------------------------------------------------------
 
@@ -228,6 +192,142 @@ void ditherImage(PImage img, int f, int m) {
   img.updatePixels();
 }
 
+void dotImageColored(PImage img, int xa, int ya, int f, int r) {
+  img = pixelateImage(img, f);
+  float[] bn = getBrightness(img);
+  int n = bn.length;
+  bn = sort(bn);
+  if (n <= 1) {
+    throw new IllegalArgumentException("image contains less than 2 colors");
+  }
+
+  img.loadPixels();
+  pushMatrix();
+  translate(xa, ya);
+  noStroke();
+  fill(0);
+  rect(0, 0, img.width * f * r, img.height * f * r); // background
+
+  for (int y = 0; y < img.height; y++) {
+    for (int x = 0; x < img.width; x++) {
+      color c = img.pixels[index(img, x, y)];
+      float b2 = brightness(c);
+      int index = 0;
+      for (int i = 0; i < n; i++) {
+        if (bn[i] == b2) {
+          index = i;
+          break;
+        }
+      }
+      int radius = round((float(index) / (n - 1)) * f * r);
+      fill(c);
+      ellipseMode(CENTER);
+      ellipse((x + 0.5) * f * r, (y + 0.5) * f * r, radius, radius);
+    }
+  }
+  popMatrix();
+  blendMode(NORMAL);
+  img.updatePixels();
+}
+
+void dotImageGray(PImage img, int xa, int ya, int f, int r) {
+  img = pixelateImage(img, f);
+  float[] bn = getBrightness(img);
+  int n = bn.length;
+  bn = sort(bn);
+  if (n <= 1) {
+    throw new IllegalArgumentException("image contains less than 2 colors");
+  }
+
+  img.loadPixels();
+  pushMatrix();
+  translate(xa, ya);
+  noStroke();
+  fill(0);
+  rect(0, 0, img.width * f * r, img.height * f * r); // background
+
+  for (int y = 0; y < img.height; y++) {
+    for (int x = 0; x < img.width; x++) {
+      float b2 = brightness(img.pixels[index(img, x, y)]);
+      int index = 0;
+      for (int i = 0; i < n; i++) {
+        if (bn[i] == b2) {
+          index = i;
+          break;
+        }
+      }
+      int radius = round((float(index) / (n - 1)) * f * r);
+      fill(255);
+      ellipseMode(CENTER);
+      ellipse((x + 0.5) * f * r, (y + 0.5) * f * r, radius, radius);
+    }
+  }
+  popMatrix();
+  blendMode(NORMAL);
+  img.updatePixels();
+}
+
+void dotImageColors(PImage img, int xa, int ya, int f, int r) {
+  img = pixelateImage(img, f);
+  color[] cols = getColors(img);
+  int n = cols.length;
+  if (n <= 1) {
+    throw new IllegalArgumentException("image contains less than 2 colors");
+  }
+  float[] reds = new float[n];
+  float[] greens = new float[n];
+  float[] blues = new float[n];
+  for (int i = 0; i < n; i++) {
+    reds[i] = red(cols[i]);
+    greens[i] = green(cols[i]);
+    blues[i] = blue(cols[i]);
+  }
+  reds = sort(reds);
+  greens = sort(greens);
+  blues = sort(blues);
+
+  img.loadPixels();
+  pushMatrix();
+  translate(xa, ya);
+  noStroke();
+  fill(0);
+  rect(0, 0, img.width * f * r, img.height * f * r); // background
+
+  for (int y = 0; y < img.height; y++) {
+    for (int x = 0; x < img.width; x++) {
+      color c = img.pixels[index(img, x, y)];
+      int[] index = {0, 0, 0};
+      for (int i = 0; i < n; i++) {
+        if (reds[i] == red(c)) {
+          index[0] = i;
+        }
+        if (greens[i] == green(c)) {
+          index[1] = i;
+        }
+        if (blues[i] == blue(c)) {
+          index[2] = i;
+        }
+      }
+      int rRad = round((float(index[0]) / (n - 1)) * f * r);
+      int gRad = round((float(index[1]) / (n - 1)) * f * r);
+      int bRad = round((float(index[2]) / (n - 1)) * f * r);
+      blendMode(ADD);
+      ellipseMode(CENTER);
+      fill(255, 0, 0);
+      ellipse((x + 0.5) * f * r, (y + 0.5) * f * r, rRad, rRad);
+
+      fill(0, 255, 0);
+      ellipse((x + 0.5) * f * r, (y + 0.5) * f * r, gRad, gRad);
+
+      fill(0, 0, 255);
+      ellipse((x + 0.5) * f * r, (y + 0.5) * f * r, bRad, bRad);
+    }
+  }
+  popMatrix();
+  blendMode(NORMAL);
+  img.updatePixels();
+}
+
 color colorFromMode(float r, float g, float b, int m) {
   switch (m) {
   case 1:  
@@ -241,4 +341,58 @@ color colorFromMode(float r, float g, float b, int m) {
   default: 
     return color(r, g, b);
   }
+}
+
+color[] getColors(PImage img) {
+  img.loadPixels();
+  color[] cols;
+  ArrayList<Integer> colors = new ArrayList<Integer>();
+  for (int y = 0; y < img.height; y++) {
+    for (int x = 0; x < img.width; x++) {
+      color c2 = img.pixels[index(img, x, y)];
+      boolean isContained = false;
+      for (color c : colors) {
+        if (c2 == c) {
+          isContained = true;
+        }
+      }
+      if (!isContained) {
+        colors.add(c2);
+      }
+    }
+  }
+  cols = new color[colors.size()];
+  for (int i = 0; i < colors.size(); i++) {
+    cols[i] = colors.get(i);
+  }
+  img.updatePixels();
+  return cols;
+}
+
+// values between 0 - 255
+float[] getBrightness(PImage img) {
+  img.loadPixels();
+  float[] bn;
+  ArrayList<Integer> colors = new ArrayList<Integer>();
+  for (int y = 0; y < img.height; y++) {
+    for (int x = 0; x < img.width; x++) {
+      color c2 = img.pixels[index(img, x, y)];
+      boolean isContained = false;
+      for (color c : colors) {
+        if (c2 == c) {
+          isContained = true;
+        }
+      }
+      if (!isContained) {
+        colors.add(c2);
+      }
+    }
+  }
+  bn = new float[colors.size()];
+  for (int i = 0; i < colors.size(); i++) {
+    color c = colors.get(i);
+    bn[i] = brightness(c);
+  }
+  img.updatePixels();
+  return bn;
 }
