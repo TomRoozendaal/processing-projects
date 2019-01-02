@@ -26,14 +26,15 @@ int[] pos = {0, 0};
 // Knight: {{-1, -2},{-2, -1},{-2, 1},{-1, 2},{1, 2},{2, 1},{2, -1},{1, -2}};
 int[][] relMoves = {{2, -2}, {0, -3}, {-2, -2}, {-3, 0}, {-2, 2}, {0, 3}, {2, 2}, {3, 0}};
 // nrof rows
-int rows = 7;
+int rows = 10;
 // nrof columns
-int cols = 7;
+int cols = 10;
 // print all the solutions, time consuming if enabled!
 // nrof solutions 5x5: 552
 // nrof solutions 6x6: 302282
 // ..
 boolean printAllSolutions = false;
+boolean animate = true;
 // computation delay in ms, 0 is none
 // putting this value above 1000/60 allows the application 
 // to draw the steps from the algorithm
@@ -43,7 +44,7 @@ int delay = 0;//int(1000/60);
 void setup() {
   s = new Semaphore(1);
 
-  size(400, 400);
+  size(600, 600);
   solCount = 0;
   curr = 1;
   grid = new int[rows][cols];
@@ -58,24 +59,33 @@ void setup() {
   thread("calculate");
 }
 void draw() {
-  visualize();
+  if (animate) {
+    visualize();
+  }
+}
+
+void mouseClicked() {
+  String fileName = rows +"-"+ cols +"_"
+    +second()+minute()+hour()+day()+month()+year();
+  saveFrame("img/"+ fileName +".png");
+  println("frame saved");
 }
 
 // ------------ misc ------------
 void visualize() {
-  background(0);
-  strokeWeight(2);
-  stroke(190);
-  fill(230);
-  for (int i = 0; i < rows; i++ ) {
-    for (int j = 0; j < cols; j++ ) {
-      rect(j * colSp, i * rowSp, (j + 1) * colSp, (i + 1) * rowSp );
-    }
-  }
-  noStroke();
   try {
     s.acquire();
     try {
+      background(0);
+      strokeWeight(2);
+      stroke(190);
+      fill(230);
+      for (int i = 0; i < rows; i++ ) {
+        for (int j = 0; j < cols; j++ ) {
+          rect(j * colSp, i * rowSp, (j + 1) * colSp, (i + 1) * rowSp );
+        }
+      }
+      noStroke();
       for (int k = 0; k < path.size(); k++) {
         PVector pos = path.get(k);
         int i = int(pos.x);
@@ -103,25 +113,25 @@ void visualize() {
         textSize(12);
         text(a, p[0], p[1] - 2);
       }
+      for (int i = 0; i < rows; i++ ) {
+        for (int j = 0; j < cols; j++ ) {
+          //println(grid[i][j]);
+          if (grid[i][j] == 0) {
+            float radius = min(colSp * 0.6, rowSp * 0.6);
+            float[] p = {(j + 0.5) * colSp, (i + 0.5) * rowSp};
+            fill(0, 0, 120);
+            stroke(0, 0, 50);
+            strokeWeight(2);
+            ellipse( p[0], p[1], radius, radius);
+          }
+        }
+      }
     } 
     finally {
       s.release();
     }
   } 
   catch(InterruptedException e) {
-  }
-  for (int i = 0; i < rows; i++ ) {
-    for (int j = 0; j < cols; j++ ) {
-      //println(grid[i][j]);
-      if (grid[i][j] == 0) {
-        float radius = min(colSp * 0.6, rowSp * 0.6);
-        float[] p = {(j + 0.5) * colSp, (i + 0.5) * rowSp};
-        fill(0, 0, 120);
-        stroke(0, 0, 50);
-        strokeWeight(2);
-        ellipse( p[0], p[1], radius, radius);
-      }
-    }
   }
 }
 
@@ -136,9 +146,7 @@ void arrow(int x1, int y1, int x2, int y2) {
   line(0, 0, -5, -5);
   line(0, 0, 5, -5);
   popMatrix();
-} 
-
-
+}
 
 void printGrid() {
   for (int x = 0; x < grid[0].length; x++) {
@@ -174,6 +182,7 @@ void calculate() {
     solCount++;
     printGrid();
     if (!printAllSolutions || solCount == 1) {
+      animate = true;
       delay(1000);
       noLoop();
       delay(1000);
