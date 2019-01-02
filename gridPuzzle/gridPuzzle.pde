@@ -10,30 +10,39 @@
  *  There you will place the number 2. Your goal is to fill the entire grid by jumping from cell to cell.
  */
 
+import java.util.concurrent.Semaphore;
+
 int grid[][];
 int rowSp;
 int colSp;
 int curr;
 int solCount;
 ArrayList<PVector> path;
+Semaphore s;
 
 // starting position
 int[] pos = {0, 0};
+// relative moves from the current position
+// Knight: {{-1, -2},{-2, -1},{-2, 1},{-1, 2},{1, 2},{2, 1},{2, -1},{1, -2}};
+int[][] relMoves = {{2, -2}, {0, -3}, {-2, -2}, {-3, 0}, {-2, 2}, {0, 3}, {2, 2}, {3, 0}};
 // nrof rows
-int rows = 5;
+int rows = 7;
 // nrof columns
-int cols = 5;
+int cols = 7;
 // print all the solutions, time consuming if enabled!
 // nrof solutions 5x5: 552
 // nrof solutions 6x6: 302282
 // ..
 boolean printAllSolutions = false;
-// computation delay (to draw)
-//int delay = 0;
-int delay = int(1000/30);
+// computation delay in ms, 0 is none
+// putting this value above 1000/60 allows the application 
+// to draw the steps from the algorithm
+int delay = 0;//int(1000/60);
 
 // ------------ setup ------------
 void setup() {
+  s = new Semaphore(1);
+
   size(400, 400);
   solCount = 0;
   curr = 1;
@@ -46,8 +55,7 @@ void setup() {
   rowSp = height / rows;
   colSp = width / cols;
   colorMode(HSB);
-  thread("next");
-  println("finished, solutions: " + solCount);
+  thread("calculate");
 }
 void draw() {
   visualize();
@@ -57,7 +65,7 @@ void draw() {
 void visualize() {
   background(0);
   strokeWeight(2);
-  stroke(180);
+  stroke(190);
   fill(230);
   for (int i = 0; i < rows; i++ ) {
     for (int j = 0; j < cols; j++ ) {
@@ -65,31 +73,42 @@ void visualize() {
     }
   }
   noStroke();
-  for (int k = 0; k < path.size(); k++) {
-    PVector pos = path.get(k);
-    int i = int(pos.x);
-    int j = int(pos.y);
-    int a = grid[i][j];
-    float radius = min(colSp * 0.6, rowSp * 0.6);
-    float hue = map(a, 1, rows*cols, 60, 150);
-    float[] p = {(j + 0.5) * colSp, (i + 0.5) * rowSp};
-    if ( k < path.size()-1) {
-      PVector next = path.get(k + 1).copy();
-      next.sub(pos).normalize().mult((radius/2) + 12);
-      int x = int(next.y);
-      int y = int(next.x);
-      stroke(hue, 200, 200);
-      arrow(int(p[0]), int(p[1]), int(p[0] + x), int(p[1] + y));
+  try {
+    s.acquire();
+    try {
+      for (int k = 0; k < path.size(); k++) {
+        PVector pos = path.get(k);
+        int i = int(pos.x);
+        int j = int(pos.y);
+        int a = grid[i][j];
+        float radius = min(colSp * 0.6, rowSp * 0.6);
+        float hue = map(a, 1, rows*cols, 60, 150);
+        float[] p = {(j + 0.5) * colSp, (i + 0.5) * rowSp};
+
+        if ( k < path.size() - 1) {
+          PVector next = path.get(k + 1).copy();
+          next.sub(pos).normalize().mult((radius/2) + 10);
+          int x = int(next.y);
+          int y = int(next.x);
+          stroke(hue, 200, 200);
+          arrow(int(p[0]), int(p[1]), int(p[0] + x), int(p[1] + y));
+        }
+        fill(hue, 0, 250);
+        stroke(hue, 200, 200);
+        strokeWeight(2);
+        ellipse( p[0], p[1], radius, radius);   
+        textAlign(CENTER, CENTER);
+        fill(0, 0, 0);
+        noStroke();
+        textSize(12);
+        text(a, p[0], p[1] - 2);
+      }
+    } 
+    finally {
+      s.release();
     }
-    fill(hue, 0, 250);
-    stroke(hue, 200, 200);
-    strokeWeight(2);
-    ellipse( p[0], p[1], radius, radius);   
-    textAlign(CENTER, CENTER);
-    fill(0, 0, 0);
-    noStroke();
-    textSize(12);
-    text(a, p[0], p[1] - 2);
+  } 
+  catch(InterruptedException e) {
   }
   for (int i = 0; i < rows; i++ ) {
     for (int j = 0; j < cols; j++ ) {
@@ -150,14 +169,14 @@ void printGrid() {
 }
 
 // ------------ calculations ------------
-void next() {
+void calculate() {
   if (curr > rows * cols) {
     solCount++;
     printGrid();
     if (!printAllSolutions || solCount == 1) {
-      visualize();
       delay(1000);
       noLoop();
+      delay(1000);
     }
   }
   ArrayList<int[]> opt = findOptions(pos[0], pos[1]);
@@ -167,10 +186,20 @@ void next() {
       int[] pre = pos;
       pos = opt.get(k);
       grid[pos[0]][pos[1]] = curr;
-      path.add(new PVector(pos[0], pos[1]));
+      try {
+        s.acquire();
+        try {
+          path.add(new PVector(pos[0], pos[1]));
+        } 
+        finally {
+          s.release();
+        }
+      }
+      catch(InterruptedException e) {
+      }
       curr++;
       // recurse
-      next();
+      calculate();
       // reset
       grid[pos[0]][pos[1]] = 0;
       path.remove(path.size() -1);
@@ -183,7 +212,11 @@ void next() {
 
 ArrayList<int[]> findOptions(int y, int x) {
   ArrayList<int[]> options = new ArrayList<int[]>();
-  int[][] nextList = {{y-2, x-2}, {y-3, x}, {y-2, x+2}, {y, x+3}, {y+2, x+2}, {y+3, x}, {y+2, x-2}, {y, x-3}};
+  int[][] nextList = new int[relMoves.length][2];
+  for (int i = 0; i < relMoves.length; i++) {
+    nextList[i][0] = y-relMoves[i][0];
+    nextList[i][1] = x-relMoves[i][1];
+  }
   for (int i = 0; i < nextList.length; i++) {
     if (nextList[i][0] >= 0 && nextList[i][0] < rows && nextList[i][1] >= 0 && nextList[i][1] < cols
       && grid[nextList[i][0]][nextList[i][1]] == 0) {
