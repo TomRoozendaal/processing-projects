@@ -23,8 +23,7 @@ Semaphore s;
 // starting position
 int[] pos = {0, 0};
 // relative moves from the current position
-// Knight: {{-1, -2},{-2, -1},{-2, 1},{-1, 2},{1, 2},{2, 1},{2, -1},{1, -2}};
-int[][] relMoves = {{2, -2}, {0, -3}, {-2, -2}, {-3, 0}, {-2, 2}, {0, 3}, {2, 2}, {3, 0}};
+int[][] relMoves = {{-1, -2}, {-2, -1}, {-2, 1}, {-1, 2}, {1, 2}, {2, 1}, {2, -1}, {1, -2}}; // knight
 // nrof rows
 int rows = 10;
 // nrof columns
@@ -189,7 +188,7 @@ void calculate() {
     }
   }
   ArrayList<int[]> opt = findOptions(pos[0], pos[1]);
-  while (opt.size() > 0 && (solCount == 0 || printAllSolutions)) {
+  while (opt.size() > 0 && (solCount == 0 || printAllSolutions) && validateGrid()) {
     delay(delay);
     for (int k = 0; k < opt.size(); k++ ) {
       int[] pre = pos;
@@ -233,4 +232,23 @@ ArrayList<int[]> findOptions(int y, int x) {
     }
   }
   return options;
+}
+
+// checks if current grid can be solved by looking at the options for empty cells
+// this is used to prune some invalid recursice tree branches
+boolean validateGrid() {
+  boolean result = true;
+  int empty = 0;
+  for (int i = 0; i < rows; i++ ) {
+    for (int j = 0; j < cols; j++ ) {
+      if (grid[i][j] == 0) {
+        empty++;
+        if (findOptions(i, j).isEmpty()) {
+          result = false;
+        }
+      }
+    }
+  }
+  
+  return result || empty < 2;
 }
