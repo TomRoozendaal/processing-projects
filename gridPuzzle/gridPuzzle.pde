@@ -11,41 +11,49 @@
  */
 
 import java.util.concurrent.Semaphore;
+import java.util.*;
 
 int grid[][];
 int rowSp;
 int colSp;
 int curr;
 int solCount;
+boolean paused;
 ArrayList<PVector> path;
 Semaphore s;
+Semaphore p;
 
 // starting position
 int[] pos = {0, 0};
 // relative moves from the current position
+//int[][] relMoves = {{2, -2}, {0, -3}, {-2, -2}, {-3, 0}, {-2, 2}, {0, 3}, {2, 2}, {3, 0}}; // star
 int[][] relMoves = {{-1, -2}, {-2, -1}, {-2, 1}, {-1, 2}, {1, 2}, {2, 1}, {2, -1}, {1, -2}}; // knight
 // nrof rows
-int rows = 10;
+int rows = 7;
 // nrof columns
-int cols = 10;
+int cols = 7;
 // print all the solutions, time consuming if enabled!
 // nrof solutions 5x5: 552
 // nrof solutions 6x6: 302282
 // ..
 boolean printAllSolutions = false;
 boolean animate = true;
+boolean checks = true;
+boolean randomMoves = true;
 // computation delay in ms, 0 is none
 // putting this value above 1000/60 allows the application 
-// to draw the steps from the algorithm
+// to draw all of the steps from the algorithm
 int delay = 0;//int(1000/60);
 
 // ------------ setup ------------
 void setup() {
-  s = new Semaphore(1);
-
   size(600, 600);
+  s = new Semaphore(1);
+  p = new Semaphore(1);
+
   solCount = 0;
   curr = 1;
+  paused = false;
   grid = new int[rows][cols];
   path = new ArrayList<PVector>();
   grid[pos[0]][pos[1]] = curr;
@@ -64,10 +72,27 @@ void draw() {
 }
 
 void mouseClicked() {
-  String fileName = rows +"-"+ cols +"_"
-    +second()+minute()+hour()+day()+month()+year();
-  saveFrame("img/"+ fileName +".png");
-  println("frame saved");
+  try {
+    if (paused) {
+      p.release();
+    } else {
+      p.tryAcquire(100, java.util.concurrent.TimeUnit.MILLISECONDS);
+    }
+    paused = !paused;
+  }
+  catch (Exception e) {
+  }
+}
+
+
+
+void keyPressed() {
+  if (key == 's') {  
+    String fileName = rows +"-"+ cols +"_"
+      +second()+minute()+hour()+day()+month()+year();
+    saveFrame("img/"+ fileName +".png");
+    println("frame saved");
+  }
 }
 
 // ------------ misc ------------
@@ -148,27 +173,31 @@ void arrow(int x1, int y1, int x2, int y2) {
 }
 
 void printGrid() {
-  for (int x = 0; x < grid[0].length; x++) {
+  printGrid(grid);
+}
+
+void printGrid(int[][] grd) {
+  for (int x = 0; x < grd[0].length; x++) {
     print("+---------\t");
   }
   println("+");
-  for (int y = 0; y < grid.length; y++) {
-    if (y % rows == 0 && y != 0) {
+  for (int y = 0; y < grd.length; y++) {
+    if (y % grd.length == 0 && y != 0) {
       println("-------------------------");
     }
-    for (int x = 0; x < grid[0].length; x++) {
-      if (x % cols == 0) {
+    for (int x = 0; x < grd[0].length; x++) {
+      if (x % grd[0].length == 0) {
         print("| ");
       }
-      if (grid[y][x] != 0) {
-        print(grid[y][x] + "\t");
+      if (grd[y][x] != 0) {
+        print(grd[y][x] + "\t");
       } else {
         print("\t");
       }
     }
     println("|");
   }
-  for (int x = 0; x < grid[0].length; x++) {
+  for (int x = 0; x < grd[0].length; x++) {
     print("+---------\t");
   }
   println("+");
@@ -188,8 +217,17 @@ void calculate() {
     }
   }
   ArrayList<int[]> opt = findOptions(pos[0], pos[1]);
+  if(randomMoves) Collections.shuffle(opt);
   while (opt.size() > 0 && (solCount == 0 || printAllSolutions) && validateGrid()) {
     delay(delay);
+
+    try { // pause mechanism
+      p.acquire();
+      p.release();
+    } 
+    catch (Exception e) {
+    }
+
     for (int k = 0; k < opt.size(); k++ ) {
       int[] pre = pos;
       pos = opt.get(k);
@@ -237,18 +275,79 @@ ArrayList<int[]> findOptions(int y, int x) {
 // checks if current grid can be solved by looking at the options for empty cells
 // this is used to prune some invalid recursice tree branches
 boolean validateGrid() {
-  boolean result = true;
-  int empty = 0;
+  if (!checks) return true;
+  ArrayList<ArrayList<int[]>> sets = new ArrayList<ArrayList<int[]>>();
+
+  int nrofEmptyCells = 0;
   for (int i = 0; i < rows; i++ ) {
     for (int j = 0; j < cols; j++ ) {
+
       if (grid[i][j] == 0) {
-        empty++;
-        if (findOptions(i, j).isEmpty()) {
-          result = false;
-        }
+        ArrayList<int[]> options = findOptions(i, j);
+        nrofEmptyCells++;
+        options.add(new int[] {i, j});
+        sets.add(options);
       }
     }
   }
-  
-  return result || empty < 2;
+
+  // check connectivity between the empty cells
+  ArrayList<ArrayList<Integer>> simpleSets = coordinatesToCell(sets);
+  boolean[][] connectedGrid = new boolean[nrofEmptyCells][nrofEmptyCells];
+  for (int i = 0; i < nrofEmptyCells; i++ ) {
+    for (int j = 0; j < nrofEmptyCells; j++ ) {
+      Set<Integer> a = new HashSet<Integer>(simpleSets.get(i));
+      Set<Integer> b = new HashSet<Integer>(simpleSets.get(j));
+      a.retainAll(b);
+      if (!a.isEmpty()) {
+        connectedGrid[i][j] = true;
+      }
+    }
+  }
+
+  if (nrofEmptyCells >= 2){
+    boolean[] marked = BFS(connectedGrid, nrofEmptyCells, 1);
+    for (boolean b : marked) {
+      if (!b) return false;
+    }
+  }
+
+  return true;
+}
+
+ArrayList<ArrayList<Integer>> coordinatesToCell(ArrayList<ArrayList<int[]>> lists) {
+  ArrayList<ArrayList<Integer>> result = new ArrayList<ArrayList<Integer>>();
+  for (ArrayList<int[]> list : lists) {
+    ArrayList<Integer> element = new ArrayList<Integer>();
+    for (int[] a : list) {
+      int e = rows * a[0] + a[1];
+      element.add(e);
+    }
+    result.add(element);
+  }
+
+  return result;
+}
+
+public static boolean[] BFS(boolean[][] adjacencyMatrix, int vertexCount, int givenVertex) {
+  // Result array.
+  boolean[] mark = new boolean[vertexCount];
+
+  Queue<Integer> queue = new LinkedList<Integer>();
+  queue.add(givenVertex);
+  mark[givenVertex] = true;
+
+  while (!queue.isEmpty())
+  {
+    Integer current = queue.remove();
+
+    for (int i = 0; i < vertexCount; ++i)
+      if (adjacencyMatrix[current][i] && !mark[i])
+      {
+        mark[i] = true;
+        queue.add(i);
+      }
+  }
+
+  return mark;
 }

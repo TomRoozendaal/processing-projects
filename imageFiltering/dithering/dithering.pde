@@ -2,9 +2,9 @@
 
 String fileName = "003.jpg";
 PImage img;
-int pixelFactor = 4; // nrof pixels (squared) turned into 1
-int quantizationFactor = 8;
-int mode = 3;
+int pixelFactor = 2; // nrof pixels (squared) turned into 1
+int quantizationFactor = 1;
+int mode = 1;
 int w, h;
 
 // animation variables
@@ -25,7 +25,12 @@ void draw() {
 
   // image 2
   if (p%3 == 1) {
-    dotImageColors(img, 512, 0, 8, 2);
+    PImage image = pixelateImage(img, 2);
+    ditherImage(image, 5, 1);
+    image = resizeImage(image, 1024, 1024);
+    image(image, 512, 0);
+    
+    //dotImageColors(img, 512, 0, 8, 2);
   } else if (p%3 == 2) {
     dotImageGray(img, 512, 0, 8, 2);
   } else {
