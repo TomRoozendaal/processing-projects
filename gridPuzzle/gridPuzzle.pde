@@ -29,7 +29,7 @@ int[] pos = {0, 0};
 //int[][] relMoves = {{2, -2}, {0, -3}, {-2, -2}, {-3, 0}, {-2, 2}, {0, 3}, {2, 2}, {3, 0}}; // star
 int[][] relMoves = {{-1, -2}, {-2, -1}, {-2, 1}, {-1, 2}, {1, 2}, {2, 1}, {2, -1}, {1, -2}}; // knight
 // nrof rows
-int rows = 7;
+int rows = 5;
 // nrof columns
 int cols = 7;
 // print all the solutions, time consuming if enabled!
@@ -47,7 +47,7 @@ int delay = 0;//int(1000/60);
 
 // ------------ setup ------------
 void setup() {
-  size(600, 600);
+  size(500, 300);
   s = new Semaphore(1);
   p = new Semaphore(1);
 
