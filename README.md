@@ -1,7 +1,3 @@
-# CellularAutomata
-
-This repository contains a collection of smaller projects made with [Processing](https://processing.org/), a java-based application aimed at creative programming. 
-
 ## Qwixx Mixer
 A project aimed to create custom scoreblock sheets for the game Qwixx, with options to scramble numbers in the rows and colors in the columns.
 
